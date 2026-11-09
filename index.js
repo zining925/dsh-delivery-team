@@ -81,6 +81,7 @@ const STAGES = [
         { name: 'README.md', path: 'README.md' },
         { name: 'AGENTS.md', path: 'AGENTS.md' },
         { name: 'docs/工程规则.md', path: 'docs/工程规则.md' },
+        { name: '技术栈/交付端确认' },
       ],
       产品经理: [{ name: '目录契约确认' }],
     },
@@ -164,8 +165,10 @@ const ROLES = [
 /** 首次激活引导（作为一次性上下文注入，非静默模式）。 */
 const GUIDE_MESSAGE = `【交付团队插件 · 首次激活】
 本会话已激活交付团队 Vibe 规范，当前处于【阶段01 项目骨架建设】。
-请在接下来第一条回复中先向用户输出下面这行引导语（原文照搬），再等待用户提供项目名称与目标简述：
-已激活交付团队 Vibe 规范。当前处于【阶段01 项目骨架建设】，请提供项目名称与目标简述，开始推进。`;
+请在接下来第一条回复中先向用户输出下面这行引导语（原文照搬），再用一次 ask_user_question 把开工前信息问齐：
+已激活交付团队 Vibe 规范。当前处于【阶段01 项目骨架建设】，请提供：项目名称与目标、技术栈（后端/Web/App·小程序）、交付端、核心范围（P0）与本期不做、时间/部署/合规等约束。
+
+澄清规则：技术栈必须给出推荐项但不得替用户拍板；用户明确说“你决定”才采用推荐值，并写入 docs/工程规则.md；技术栈未确认前不要创建目录骨架、不要写代码、不要进入阶段02。`;
 
 /**
  * 从 manifest.json 读取配置默认值，作为 Config schema 的默认值来源。
@@ -224,9 +227,10 @@ const BASE_RULES = `## 交付团队 Vibe Coding 规范（DeliveryTeamVibeCodingR
 
 ## 分阶段角色激活 & 阶段产出规则（强制）
 阶段01｜项目骨架建设【负责人：项目经理】
-输入：项目背景、项目名称、目标简述
+输入：项目背景、项目名称、目标简述、技术栈、交付端与约束
 角色：项目经理主导，产品配合确认目录契约
-产出：目录骨架、README.md、AGENTS.md、docs/工程规则.md、Git分支规范文档；确认完成，写入事实结构。
+产出：目录骨架、README.md、AGENTS.md、docs/工程规则.md（记录技术栈/交付端/约束）、Git分支规范文档；确认完成，写入事实结构。
+准入（强制）：开工前必须用一次 ask_user_question 向用户澄清并确认：项目名称与目标；后端/数据库、Web、App·小程序的技术栈；交付端；核心范围（P0 3–8 条）与本期不做；时间/部署/合规/既有系统约束。未确认技术栈前不得创建骨架、不得写代码、不得进入阶段02；不得替用户假设技术栈；用户明确说“你决定”时才用推荐值并记录。
 本阶段不做需求、不做设计、不做技术方案。
 
 阶段02｜用户故事 & 优先级梳理【负责人：产品经理；项目经理参与评审】
@@ -274,6 +278,12 @@ docs/facts/database-schema.md
 5. 所有角色产出物，全部落文档，文档作为上下游唯一交付凭证。`;
 
 const HARDENING_RULES = `## 加固规则（强制，优先级高于本段之前的流程描述）
+
+### 0. 开工前澄清（阶段01准入，强制）
+- 用户提出项目/想法后，第一步不是建目录，而是用一次 ask_user_question 问齐：项目名称与目标；后端/数据库、Web、App·小程序的技术栈；交付端；核心范围（P0 3–8 条）与本期不做；约束（时间/部署/合规/既有系统）。
+- 技术栈必须给出推荐项，但不得替用户拍板；用户明确说“你决定”才采用推荐项，并在 docs/工程规则.md 记录。
+- 未确认技术栈前：不创建目录骨架、不写代码、不进入阶段02；只复述待确认项。
+- 已确认的技术栈、交付端与约束写入 docs/工程规则.md，后续阶段引用，不得擅自更换。
 
 ### 1. 状态锚点（每次回复必须）
 - 每次回复的第一行必须是状态锚点，格式固定为：【当前阶段：<阶段编号与名称>】【角色：<当前角色>】。
@@ -536,9 +546,9 @@ function statusText(agent, config, modeInfo) {
   const project = typeof cwd === 'string' && cwd !== '' ? detectProject(cwd) : undefined;
   const root = project?.root ?? (typeof cwd === 'string' ? cwd : undefined);
   const modeLabel = modeInfo.mode === 'on'
-    ? '开启（输入框开关，强制注入）'
+    ? '开启（/vibe 命令，强制注入）'
     : modeInfo.mode === 'off'
-      ? '关闭（输入框开关，不注入）'
+      ? '关闭（/vibe off，不注入）'
       : '自动检测（无 UI 的宿主）';
 
   const lines = [
@@ -583,7 +593,7 @@ function registerCommands(ctx, logger, config, helpers) {
     if (helpers.isActive(agent)) return undefined;
     return {
       kind: 'error',
-      text: '软件交付模式未开启：请先打开输入框上方的「软件交付模式」开关。',
+      text: '交付模式未开启：请先执行 /vibe。',
     };
   };
 
