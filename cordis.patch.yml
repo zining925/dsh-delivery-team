@@ -1,0 +1,30 @@
+# vibe-delivery-team bundle 补丁
+#
+# 安装后由 Loader 插入一行 Host 插件；插件只注册 system prompt section 与
+# 轻量 slash 命令，不注册工具、不接管 Agent 循环。
+#
+# 三个标准配置项（修改后由 Loader 重启插件，无需重启会话）：
+#   enabled    总开关，默认 true
+#   autoDetect 自动检测，默认 true；false 时永不自动激活
+#   silent     静默模式，默认 false；true 时只注入规则、不输出首次激活引导
+#
+# 关闭方式（在 profile 的 cordis.patch.yml 中按 id 覆盖；注意 patch 会替换
+# 整个 config，而不是逐键合并，因此三个键要一起写）：
+#
+#   - id: vibe-delivery-team
+#     config:
+#       enabled: false
+#       autoDetect: true
+#       silent: true
+#
+# 也可以直接禁用整行：
+#
+#   - id: vibe-delivery-team
+#     disabled: true
+- insert:
+    - id: vibe-delivery-team
+      name: vibe-delivery-team
+      config:
+        enabled: true
+        autoDetect: true
+        silent: false

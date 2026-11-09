@@ -1,0 +1,93 @@
+{
+  "name": "vibe-delivery-team",
+  "version": "1.4.5",
+  "description": "项目感知的多角色交付团队 + 文档驱动 Vibe Coding 规范注入插件：/vibe 命令启动交付模式，输入框工具行显示状态胶囊与团队状态面板。",
+  "entry": "index.js",
+  "bundle": {
+    "patch": "./cordis.patch.yml"
+  },
+  "section": {
+    "name": "DeliveryTeamVibeCodingRules",
+    "order": 200,
+    "scope": "agent",
+    "placement": "after base system prompt, before tool capability descriptions"
+  },
+  "ui": {
+    "client": "client.js",
+    "platform": "web",
+    "slot": "conversation.input.left",
+    "order": 10,
+    "label": "交付模式",
+    "kind": "status-pill",
+    "activation": "slash command /vibe (on|off|status)",
+    "contains": [
+      "团队状态按钮",
+      "退出按钮"
+    ],
+    "persistence": "Host session-scoped; visible only while delivery mode is on"
+  },
+  "activation": {
+    "gitRepositoryRequired": true,
+    "requireAnyOf": [
+      "AGENTS.md",
+      "docs/facts/"
+    ],
+    "detectFrom": "session cwd, walking up to the nearest .git entry",
+    "supportsLinkedWorktree": true,
+    "uiOverride": true
+  },
+  "configuration": {
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "总开关。false 时不注入任何内容；但输入框开关开启时 UI 优先。"
+    },
+    "autoDetect": {
+      "type": "boolean",
+      "default": true,
+      "description": "自动检测开关。false 时永不自动激活（UI 开关开启时仍强制注入）。"
+    },
+    "silent": {
+      "type": "boolean",
+      "default": false,
+      "description": "静默模式。true 时只注入规则，不输出首次激活引导与开关切换提示。"
+    }
+  },
+  "commands": [
+    {
+      "name": "vibe",
+      "description": "开启/关闭交付模式：/vibe、/vibe on|off|status"
+    },
+    {
+      "name": "vibe-status",
+      "description": "查看软件交付模式、当前阶段、角色与各阶段产出是否存在。"
+    },
+    {
+      "name": "vibe-role",
+      "description": "快速切换角色视角，例如 /vibe-role 产品经理。"
+    },
+    {
+      "name": "vibe-reset",
+      "description": "重置到阶段01（需二次确认，不会删除任何文档）。"
+    }
+  ],
+  "capabilities": [
+    "systemPrompt.section",
+    "commands.register",
+    "webServer.register",
+    "client.slots.register",
+    "client.shell.overlay"
+  ],
+  "engines": {
+    "dsh": ">=0.2.0 <0.3.0"
+  },
+  "license": "MIT",
+  "panel": {
+    "slot": "shell.overlay",
+    "trigger": "conversation.input.dock「团队状态」按钮（仅开关开启时可见）",
+    "width": "默认 50vw，可拖拽调整（340px–90vw）",
+    "persistence": "浏览器 localStorage，按 sessionId 隔离",
+    "autoRefreshMs": 4000,
+    "dataSource": "Host /vibe-delivery-team/state（阶段锚点 + 角色状态 + 产出物存在性）"
+  }
+}
